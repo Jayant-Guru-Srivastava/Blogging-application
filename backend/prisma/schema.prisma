@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @unique @default(uuid())
+  username   String   @unique
+  password   String
+  full_name  String?
+  bio        String?
+  avatar_url String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // One to many
+  blogs Blog[]
+
+  // Many to many
+  likes    Like[]
+  comments Comment[]
+
+  // Self relations
+  following  Follows[] @relation("following")
+  followedBy Follows[] @relation("followedBy")
+}
+
+model Follows {
+  followedById String
+  followedBy   User   @relation("followedBy", fields: [followedById], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  followingId  String
+  following    User   @relation("following", fields: [followingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([followedById, followingId])
+}
+
+model Blog {
+  id      String @unique @default(uuid())
+  title   String
+  content String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // One to many
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Many to many
+  likes      Like[]
+  comments   Comment[]
+  categories CategoriesOnBlogs[]
+  tags       TagsOnBlogs[]
+}
+
+model Like {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  blogId String
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, blogId])
+}
+
+model Comment {
+  comment String
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  blogId  String
+  blog    Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, blogId])
+}
+
+model Category {
+  id    String              @unique @default(uuid())
+  name  String              @unique
+  blogs CategoriesOnBlogs[]
+}
+
+model CategoriesOnBlogs {
+  blogId     String
+  blog       Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([blogId, categoryId])
+}
+
+model Tag {
+  id String @unique @default(uuid())
+  name String @unique
+  blogs TagsOnBlogs[]
+}
+
+model TagsOnBlogs {
+  blogId String
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tagId String
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([blogId, tagId])
+}
